@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!-- Copyright 2026 Scalar Inc. Licensed under the Apache License, Version 2.0. -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScalarRE Samples — Svc1 / Svc2</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>ScalarRE Samples</h1>
+    <p>
+      Two services exchange messages through ScalarRE with exactly-once delivery.
+      Send from one service; RE transfers the message to the other service's inbox.
+      Then <em>Process</em> a received message (lock &amp; delete in one transaction).
+      &nbsp;·&nbsp; <a href="/swagger-ui.html" target="_blank">REST API (Swagger)</a>
+    </p>
+  </header>
+
+  <main id="panels"></main>
+
+  <!-- Panel template: cloned once per service -->
+  <template id="panel-tpl">
+    <section class="panel">
+      <h2 class="svc-title"></h2>
+      <p class="svc-sub"></p>
+
+      <label class="lbl">Compose message (JSON)</label>
+      <textarea class="compose" rows="4">{ "orderId": "A-100", "amount": 250 }</textarea>
+      <div class="row">
+        <select class="delivery"></select>
+        <button class="send">Send MSG</button>
+      </div>
+
+      <label class="lbl">Outbox <span class="hint">— sent, not yet delivered</span></label>
+      <ul class="list outbox"></ul>
+
+      <label class="lbl">RE transfer state <span class="hint">— pending → completed</span></label>
+      <ul class="list transfer"></ul>
+
+      <hr />
+
+      <label class="lbl">
+        Inbox <span class="hint">— received</span>
+        <span class="btns">
+          <button class="pull">Pull</button>
+          <button class="poll">Poll</button>
+          <button class="refresh">&#x21bb; Refresh</button>
+        </span>
+      </label>
+      <ul class="list inbox"></ul>
+
+      <label class="lbl">Detail (parsed message)</label>
+      <pre class="detail"></pre>
+      <button class="process" disabled>Process MSG</button>
+    </section>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

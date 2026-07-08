@@ -1,0 +1,16 @@
+server:
+  port: 8090
+
+# The sample app reuses the same RE config file (mounted/checked out at the repo
+# root) to discover the svc1/svc2 database addresses and credentials.
+samples:
+  # Path to the shared ScalarRE config (relative to where the app is launched).
+  re-config-path: ${SAMPLES_RE_CONFIG_PATH:../config/scalar-re-config.yml}
+  # Base URL of the running RE server.
+  re-base-url: ${SAMPLES_RE_BASE_URL:http://localhost:8080}
+  # API key for the management/scan endpoints (matches global.auth.api-key).
+  re-api-key: ${SCALAR_RE_API_KEY:demo-api-key-change-me}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

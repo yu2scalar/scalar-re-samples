@@ -1,0 +1,93 @@
+# ScalarRE samples — infrastructure only (databases + RE server).
+#
+# The sample app itself is NOT containerized here; run it on the host with
+# `./gradlew bootRun` (see README). This compose brings up:
+#   - three PostgreSQL databases (re / svc1 / svc2), published on the host
+#     at 5433 / 5434 / 5435
+#   - the one-shot RE schema initializer
+#   - the RE server (app)
+#
+# Networking (Linux): the RE containers use host networking so that the RE
+# server and the host-side sample app share one config and reach the databases
+# at localhost:543x. On Docker Desktop (macOS/Windows), enable host networking
+# or adjust the config host/ports accordingly.
+services:
+  postgres-re:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: redb
+      POSTGRES_USER: scalaradmin
+      POSTGRES_PASSWORD: scalaradmin
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scalaradmin -d redb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - re-data:/var/lib/postgresql/data
+
+  postgres-svc1:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: svc1db
+      POSTGRES_USER: scalaradmin
+      POSTGRES_PASSWORD: scalaradmin
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scalaradmin -d svc1db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - svc1-data:/var/lib/postgresql/data
+
+  postgres-svc2:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: svc2db
+      POSTGRES_USER: scalaradmin
+      POSTGRES_PASSWORD: scalaradmin
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scalaradmin -d svc2db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - svc2-data:/var/lib/postgresql/data
+
+  # One-shot: creates the RE schema (namespaces + re_* tables) then exits.
+  scalar-re-init:
+    image: ghcr.io/yu2scalar/scalar-re-init:0.9.0
+    network_mode: host
+    command: ["--create-schema"]
+    volumes:
+      - ./config/scalar-re-config.yml:/app/scalar-re-config.yml:ro
+    depends_on:
+      postgres-re:
+        condition: service_healthy
+      postgres-svc1:
+        condition: service_healthy
+      postgres-svc2:
+        condition: service_healthy
+    restart: on-failure
+
+  # The RE server. Listens on host :8080 (host networking).
+  scalar-re:
+    image: ghcr.io/yu2scalar/scalar-re:0.9.0
+    network_mode: host
+    volumes:
+      - ./config/scalar-re-config.yml:/app/scalar-re-config.yml:ro
+    depends_on:
+      scalar-re-init:
+        condition: service_completed_successfully
+    restart: on-failure
+
+volumes:
+  re-data:
+  svc1-data:
+  svc2-data:

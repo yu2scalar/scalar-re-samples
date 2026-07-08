@@ -1,0 +1,140 @@
+# ScalarRE configuration for the scalar-re-samples demo.
+#
+# Topology (Linux, host networking): the RE container runs with
+# network_mode: host and the three postgres containers publish their ports on
+# the host (re=5433 / svc1=5434 / svc2=5435). Both the RE container and the
+# host-side sample app therefore reach the databases at localhost:543x, so a
+# single config file is shared by every component.
+#
+# Namespaces -> storages -> databases:
+#   scalarre (RE coordination) -> re   -> localhost:5433 / redb
+#   svc1     (service 1)        -> svc1 -> localhost:5434 / svc1db
+#   svc2     (service 2)        -> svc2 -> localhost:5435 / svc2db
+#
+# Demo credentials are intentionally weak placeholders; do not reuse.
+schema-version: "1.0"
+
+global:
+  re-tables:
+    re_node_heartbeat: { namespace: scalarre }
+    re_completed:      { namespace: scalarre }
+    re_queue:          { namespace: scalarre }
+    re_subscription:   { namespace: scalarre }
+  auth:
+    api-key: ${SCALAR_RE_API_KEY:demo-api-key-change-me}
+  retry:
+    max-attempts: 3
+    initial-delay-ms: 100
+    max-delay-ms: 5000
+    multiplier: 2
+  internal-queue:
+    worker-threads: 10
+    queue-capacity: 10000
+  cluster:
+    cluster-id: default
+    heartbeat-interval-ms: 30000
+    heartbeat-expiry-ms: 60000
+    cleanup-retention-ms: 86400000
+  license:
+    max-nodes: 3
+    expires-at: 2027-12-31
+  server:
+    tomcat-max-threads: 200
+
+scalardb:
+  transaction-manager: consensus-commit
+  isolation-level: READ_COMMITTED
+  default-storage: re
+
+storages:
+  re:
+    type: jdbc
+    driver: postgresql
+    host: ${SCALAR_RE_DB_RE_HOST:localhost}
+    port: ${SCALAR_RE_DB_RE_PORT:5433}
+    database: ${SCALAR_RE_DB_RE_DATABASE:redb}
+    username: ${SCALAR_RE_DB_RE_USERNAME:scalaradmin}
+    password: ${SCALAR_RE_DB_RE_PASSWORD:scalaradmin}
+    options:
+      connection-pool-max-total: 50
+      metadata-cache-expiration-secs: 60
+  svc1:
+    type: jdbc
+    driver: postgresql
+    host: ${SCALAR_RE_DB_SVC1_HOST:localhost}
+    port: ${SCALAR_RE_DB_SVC1_PORT:5434}
+    database: ${SCALAR_RE_DB_SVC1_DATABASE:svc1db}
+    username: ${SCALAR_RE_DB_SVC1_USERNAME:scalaradmin}
+    password: ${SCALAR_RE_DB_SVC1_PASSWORD:scalaradmin}
+    options:
+      connection-pool-max-total: 50
+      metadata-cache-expiration-secs: 60
+  svc2:
+    type: jdbc
+    driver: postgresql
+    host: ${SCALAR_RE_DB_SVC2_HOST:localhost}
+    port: ${SCALAR_RE_DB_SVC2_PORT:5435}
+    database: ${SCALAR_RE_DB_SVC2_DATABASE:svc2db}
+    username: ${SCALAR_RE_DB_SVC2_USERNAME:scalaradmin}
+    password: ${SCALAR_RE_DB_SVC2_PASSWORD:scalaradmin}
+    options:
+      connection-pool-max-total: 50
+      metadata-cache-expiration-secs: 60
+
+namespaces:
+  scalarre:
+    storage: re
+    destination:
+      worker-threads: 10
+      queue-capacity: 10000
+      throughput-tps: 500
+  svc1:
+    storage: svc1
+    destination:
+      worker-threads: 10
+      queue-capacity: 10000
+      throughput-tps: 500
+    polling:
+      outbox-poll-interval-ms: 2000
+      outbox-poll-delay-ms: 2000
+      outbox-batch-size: 100
+    completed-enabled: true
+    hmac:
+      key: ${SCALAR_RE_HMAC_KEY_SVC1:demo-hmac-key-svc1-change-me}
+      key-previous: ${SCALAR_RE_HMAC_KEY_SVC1_PREV:}
+      key-previous-expires-at: 0
+    event-types:
+      # Svc1 -> Svc2. Both delivery types demonstrated.
+      Svc1Atomic:
+        delivery-type: atomic
+        enabled: true
+        partition-count: 2
+      Svc1Qpull:
+        delivery-type: qpull
+        enabled: true
+        partition-count: 2
+  svc2:
+    storage: svc2
+    destination:
+      worker-threads: 10
+      queue-capacity: 10000
+      throughput-tps: 500
+    polling:
+      outbox-poll-interval-ms: 2000
+      outbox-poll-delay-ms: 2000
+      outbox-batch-size: 100
+    completed-enabled: true
+    hmac:
+      key: ${SCALAR_RE_HMAC_KEY_SVC2:demo-hmac-key-svc2-change-me}
+      key-previous: ${SCALAR_RE_HMAC_KEY_SVC2_PREV:}
+      key-previous-expires-at: 0
+    event-types:
+      # Svc2 -> Svc1. Both delivery types demonstrated.
+      Svc2Atomic:
+        delivery-type: atomic
+        enabled: true
+        partition-count: 2
+      Svc2Qpull:
+        delivery-type: qpull
+        enabled: true
+        partition-count: 2
