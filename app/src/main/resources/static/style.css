@@ -133,3 +133,50 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   white-space: pre-wrap;
 }
 hr { border: none; border-top: 1px dashed var(--border); margin: 16px 0; }
+.note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.note code {
+  background: #eef2ff;
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal.hidden { display: none; }
+.modal-box {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  width: min(90vw, 560px);
+  max-height: 80vh;
+  overflow: auto;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+.modal-head button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+.modal-sub { color: var(--muted); font-size: 12px; margin: 4px 0 10px; }

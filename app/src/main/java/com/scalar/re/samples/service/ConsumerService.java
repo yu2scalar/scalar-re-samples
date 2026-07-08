@@ -23,6 +23,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +61,29 @@ public class ConsumerService {
     ReConfig.Storage db = reConfig.storageForNamespace(svc);
     String inbox = svc + ".re_inbox"; // schema-qualified
 
+    // This sample consumes ONE row picked in the UI, so it targets the exact
+    // primary key -- no ORDER BY / LIMIT is needed, and FOR UPDATE alone is
+    // enough (a concurrent consumer of the same key simply waits, then finds
+    // the row already deleted).
+    //
+    // INDEX ALIGNMENT: the WHERE lists the full primary key in key order
+    // (event_type, partition, event_id, step_id, seq), so this is a point
+    // lookup on the primary-key index. You need not use every key column, but
+    // the ones you use must form a LEFT-PREFIX (leading columns, in order, none
+    // skipped): event_type, or event_type+partition, etc. Skipping a leading
+    // column -- or sorting off key order -- disables the index and forces a
+    // full table scan, which is very costly once the inbox holds many rows.
+    //
+    // A background worker that periodically drains the inbox oldest-first would
+    // instead claim a batch per (event_type, partition), e.g.:
+    //
+    //   SELECT event_id, step_id, seq, body FROM <ns>.re_inbox
+    //     WHERE event_type = ? AND partition = ? AND tx_state = 3
+    //     ORDER BY event_id, step_id, seq   -- oldest first (event_id is time-ordered)
+    //     FOR UPDATE SKIP LOCKED            -- skip rows another worker already holds
+    //     LIMIT ?;                          -- batch size: throughput vs. lock duration
+    //   -- ... business logic ...
+    //   -- DELETE each claimed row by its full key, then COMMIT.
     String selectSql = "SELECT event_id FROM " + inbox
         + " WHERE event_type=? AND partition=? AND event_id=? AND step_id=? AND seq=?"
         + " AND tx_state=3"          // ScalarDB COMMITTED (hidden metadata column, not `status`)
@@ -107,9 +132,23 @@ public class ConsumerService {
     return re.pull(svc, Svcs.inboundEventType(svc, deliveryType), 100);
   }
 
-  /** Report which inbox keys are available for this service (non-destructive). */
-  public JsonNode poll(String svc, String deliveryType) {
-    return re.poll(svc, Svcs.inboundEventType(svc, deliveryType), 100);
+  /**
+   * Report which inbox keys are available for this service, across all inbound
+   * event types (non-destructive). This is what a REMOTE consumer sees: keys
+   * only, no body — it would then read/consume each row by key. It contrasts
+   * with this demo's Inbox list, which is an operator-style scan that shows the
+   * full rows including the body.
+   */
+  public Map<String, Object> pollKeys(String svc) {
+    List<JsonNode> records = new ArrayList<>();
+    for (String dt : Svcs.DELIVERY_TYPES) {
+      JsonNode res = re.poll(svc, Svcs.inboundEventType(svc, dt), 100);
+      JsonNode recs = res == null ? null : res.get("records");
+      if (recs != null && recs.isArray()) {
+        recs.forEach(records::add);
+      }
+    }
+    return Map.of("total", records.size(), "records", records);
   }
 
   private static void bindKey(PreparedStatement ps, String eventType, long partition,

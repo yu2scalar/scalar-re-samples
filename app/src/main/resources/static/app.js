@@ -52,6 +52,13 @@ async function init() {
     refresh(svc.name);
   }
 
+  // Poll modal close wiring (shared across panels)
+  const modal = document.getElementById("poll-modal");
+  document.getElementById("poll-close").onclick = () => modal.classList.add("hidden");
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.classList.add("hidden");
+  };
+
   setInterval(() => Object.keys(state).forEach(refresh), 3000);
 }
 
@@ -83,11 +90,25 @@ async function pull(svc) {
 
 async function poll(svc) {
   try {
-    const res = await post(`/svc/${svc}/inbox/poll`, { deliveryType: "qpull" });
-    state[svc].el.detail.textContent = "poll result:\n" + JSON.stringify(res, null, 2);
+    const res = await post(`/svc/${svc}/inbox/poll`, {});
+    showPollModal(svc, res);
   } catch (e) {
     alert("Poll failed: " + e.message);
   }
+}
+
+function showPollModal(svc, res) {
+  document.getElementById("poll-title").textContent =
+    `Poll — ${svc.toUpperCase()} available keys (${res.total})`;
+  const ul = document.getElementById("poll-list");
+  ul.innerHTML = "";
+  (res.records || []).forEach((r) => {
+    const li = document.createElement("li");
+    li.textContent =
+      `${r.event_type}  p${r.partition}  ${r.event_id}  step${r.step_id} seq${r.seq}`;
+    ul.appendChild(li);
+  });
+  document.getElementById("poll-modal").classList.remove("hidden");
 }
 
 async function processMsg(svc) {

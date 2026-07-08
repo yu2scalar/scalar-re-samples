@@ -20,6 +20,21 @@
 
   <main id="panels"></main>
 
+  <!-- Poll result popup: the remote-consumer view (keys only, no body) -->
+  <div id="poll-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span id="poll-title">Poll — available keys</span>
+        <button id="poll-close" title="Close">&times;</button>
+      </div>
+      <p class="modal-sub">
+        What a remote consumer sees: available inbox keys only, no body.
+        It would read and consume each row by key.
+      </p>
+      <ul id="poll-list" class="list"></ul>
+    </div>
+  </div>
+
   <!-- Panel template: cloned once per service -->
   <template id="panel-tpl">
     <section class="panel">
@@ -44,12 +59,17 @@
       <label class="lbl">
         Inbox <span class="hint">— received</span>
         <span class="btns">
-          <button class="pull">Pull</button>
-          <button class="poll">Poll</button>
+          <button class="pull" title="qpull: move queued messages into the inbox">Pull</button>
+          <button class="poll" title="Remote consumer's view: available keys only (no body)">Poll (keys)</button>
           <button class="refresh">&#x21bb; Refresh</button>
         </span>
       </label>
       <ul class="list inbox"></ul>
+      <p class="note">
+        The Inbox above is an operator scan (shows full rows). <b>Poll (keys)</b>
+        shows what a remote consumer sees instead — keys only, no body.
+        <b>Pull</b> applies to <code>qpull</code>: it moves queued messages into the inbox.
+      </p>
 
       <label class="lbl">Detail (parsed message)</label>
       <pre class="detail"></pre>

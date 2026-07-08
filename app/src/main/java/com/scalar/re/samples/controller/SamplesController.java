@@ -115,9 +115,9 @@ public class SamplesController {
   }
 
   @PostMapping("/svc/{svc}/inbox/poll")
-  @Operation(summary = "Report which inbox keys are available (non-destructive)")
-  public JsonNode poll(@PathVariable String svc, @RequestBody DeliveryRequest req) {
-    return consumer.poll(svc, req.deliveryType());
+  @Operation(summary = "Remote-consumer view: available inbox keys only (no body)")
+  public Map<String, Object> poll(@PathVariable String svc) {
+    return consumer.pollKeys(svc);
   }
 
   @PostMapping("/svc/{svc}/inbox/process")
