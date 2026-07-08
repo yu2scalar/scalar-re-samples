@@ -31,16 +31,23 @@ it by locking and deleting the inbox row in a single transaction.
 
 ## Run
 
-**1. Install the SDK into your local Maven repository.** The sample app depends
-on `com.scalar:scalar-re-sdk`, which is not published to a remote Maven
-repository yet, so build it locally once:
+**1. Clone this repository:**
 
 ```bash
-git clone https://github.com/yu2scalar/scalar-re-sdk.git
-(cd scalar-re-sdk && ./gradlew publishToMavenLocal)
+git clone https://github.com/yu2scalar/scalar-re-samples.git
+cd scalar-re-samples
 ```
 
-**2. Start the databases and the RE server** (from this repo's root):
+**2. Install the SDK into your local Maven repository.** The sample app depends
+on `com.scalar:scalar-re-sdk`, which is not published to a remote Maven
+repository yet, so build it locally once (cloned here as a sibling directory):
+
+```bash
+git clone https://github.com/yu2scalar/scalar-re-sdk.git ../scalar-re-sdk
+(cd ../scalar-re-sdk && ./gradlew publishToMavenLocal)
+```
+
+**3. Start the databases and the RE server** (from this repo's root):
 
 ```bash
 docker compose up -d
@@ -51,14 +58,14 @@ This starts three PostgreSQL databases (`re`/`svc1`/`svc2` on host ports
 **RE server** on `:8080`. The RE and init images are pulled from the public
 ScalarRE container registry.
 
-**3. Start the sample app:**
+**4. Start the sample app:**
 
 ```bash
 cd app
 ./gradlew bootRun
 ```
 
-**4. Open the GUI:** <http://localhost:8090> — and the REST API at
+**5. Open the GUI:** <http://localhost:8090> — and the REST API at
 <http://localhost:8090/swagger-ui.html>.
 
 ### Try it
