@@ -20,7 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.scalar.re.samples.SamplesProperties;
 import com.scalar.re.samples.config.ReConfig;
+import com.scalar.re.sdk.auth.ReRequestSigner;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -74,15 +76,15 @@ public class ReRestClient {
   }
 
   public JsonNode scanOutbox(String eventType) {
-    return getBearer("/api/v1/re-outbox/scan/" + eventType);
+    return records(getBearer("/api/v1/re-outbox/scan/" + eventType));
   }
 
   public JsonNode scanInbox(String eventType, String destination) {
-    return getBearer("/api/v1/re-inbox/scan/" + eventType + "?destination=" + destination);
+    return records(getBearer("/api/v1/re-inbox/scan/" + eventType + "?destination=" + destination));
   }
 
   public JsonNode scanCompleted(String eventType) {
-    return getBearer("/api/v1/re-completed/scan/" + eventType);
+    return records(getBearer("/api/v1/re-completed/scan/" + eventType));
   }
 
   // ---- internals ----------------------------------------------------------
@@ -95,12 +97,12 @@ public class ReRestClient {
       throw new IllegalStateException("Failed to serialize request", e);
     }
     String hmacKey = reConfig.namespace(namespace).hmacKey();
-    String timestamp = String.valueOf(System.currentTimeMillis());
-    String signature = HmacSigner.hexHmacSha256(hmacKey, payload);
+    // HMAC signature version 2 (SDK signer): method, path, query, timestamp and body are signed
+    Map<String, String> signed = ReRequestSigner.headers(
+        hmacKey, "POST", path, null, payload, System.currentTimeMillis());
     String resp = http.post().uri(path)
         .contentType(MediaType.APPLICATION_JSON)
-        .header("X-ScalarRE-Signature", signature)
-        .header("X-ScalarRE-Timestamp", timestamp)
+        .headers(h -> signed.forEach(h::set))
         .body(payload)
         .retrieve()
         .body(String.class);
@@ -113,6 +115,14 @@ public class ReRestClient {
         .retrieve()
         .body(String.class);
     return readData(resp);
+  }
+
+  /**
+   * The scan APIs return one page: {@code {"records":[...],"next_cursor":...}} (RE 0.9.6+). The demo
+   * shows the first page only, so this returns the {@code records} array.
+   */
+  static JsonNode records(JsonNode page) {
+    return page != null && page.has("records") ? page.get("records") : page;
   }
 
   /** Unwraps the RE ApiResponse envelope and returns its {@code data} node. */

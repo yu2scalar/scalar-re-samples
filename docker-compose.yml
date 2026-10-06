@@ -62,7 +62,7 @@ services:
 
   # One-shot: creates the RE schema (namespaces + re_* tables) then exits.
   scalar-re-init:
-    image: ghcr.io/yu2scalar/scalar-re-init:0.9.0
+    image: ghcr.io/yu2scalar/scalar-re-init:0.9.6
     network_mode: host
     command: ["--create-schema"]
     volumes:
@@ -78,7 +78,7 @@ services:
 
   # The RE server. Listens on host :8080 (host networking).
   scalar-re:
-    image: ghcr.io/yu2scalar/scalar-re:0.9.0
+    image: ghcr.io/yu2scalar/scalar-re:0.9.6
     network_mode: host
     volumes:
       - ./config/scalar-re-config.yml:/app/scalar-re-config.yml:ro
