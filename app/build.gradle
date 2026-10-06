@@ -26,7 +26,7 @@ dependencies {
 
 	// ScalarRE SDK — build event body JSON / parse inbox body.
 	// Install first: (cd ../../scalar-re-sdk && ./gradlew publishToMavenLocal)
-	implementation 'com.scalar:scalar-re-sdk:0.9.0'
+	implementation 'com.scalar:scalar-re-sdk:0.9.6'
 
 	// ScalarDB — producer writes the re_outbox row transactionally (COMMITTED,
 	// so RE picks it up). The consumer uses plain JDBC (native consume TX).
